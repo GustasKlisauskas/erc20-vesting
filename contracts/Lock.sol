@@ -44,14 +44,6 @@ contract Lock {
     uint256 public usedSeedSaleQ;
     uint256 public usedPrivateSaleQ;
     uint256 public usedPublicSaleQ;
-    uint256 usedbusinessDevelopmentQ;
-    uint256 usedsoftwareDevelopmentQ;
-    uint256 usedmarketingQ;
-    uint256 usedbonusesQ;
-    uint256 usedteamQ;
-    uint256 usedreserveQ;
-    uint256 usedpartnersQ;
-    uint256 usedliquidityQ;
 
     uint8 public seedPrice = 25;
     uint8 public privatePrice = 20;
@@ -158,39 +150,51 @@ contract Lock {
     }
 
     function publicBuy(uint256 _tokens) public payable {
+        require(usedPublicSaleQ + _tokens <= publicSaleQ, "Not enough tokens left");
         require(
             msg.value >= ((_tokens * publicPrice) / 100) * 1 ether,
             "Not enough ether"
         );
+        uint _unlock = _tokens / 100 * 25;
         usedPublicSaleQ += _tokens;
         quantity[msg.sender].push(_tokens);
         timeStart[msg.sender].push(block.timestamp);
-        cliff[msg.sender].push(30);
-        vestingTime[msg.sender].push(30 + 60);
+        cliff[msg.sender].push(5260000);
+        vestingTime[msg.sender].push(21040000);
+        withdrawn[msg.sender] += _unlock;
+        IERC20(ERC20Address).transfer(msg.sender, _unlock);
     }
 
     function privateBuy(uint256 _tokens) public payable {
+        require(usedPrivateSaleQ + _tokens <= privateSaleQ, "Not enough tokens left");
         require(
             msg.value >= ((_tokens * privatePrice) / 100) * 1 ether,
             "Not enough ether"
         );
+        uint _unlock = _tokens / 100 * 5;
         usedPrivateSaleQ += _tokens;
         quantity[msg.sender].push(_tokens);
         timeStart[msg.sender].push(block.timestamp);
-        cliff[msg.sender].push(50);
-        vestingTime[msg.sender].push(50 + 120);
+        cliff[msg.sender].push(5260000);
+        vestingTime[msg.sender].push(47340000);
+        withdrawn[msg.sender] += _unlock;
+        IERC20(ERC20Address).transfer(msg.sender, _unlock);
     }
 
     function seedBuy(uint256 _tokens) public payable {
+        require(usedSeedSaleQ + _tokens <= seedSaleQ, "Not enough tokens left");
         require(
             msg.value >= ((_tokens * seedPrice) / 100) * 1 ether,
             "Not enough ether"
         );
+        uint _unlock = _tokens / 100 * 5;
         usedSeedSaleQ += _tokens;
         quantity[msg.sender].push(_tokens);
         timeStart[msg.sender].push(block.timestamp);
-        cliff[msg.sender].push(70);
-        vestingTime[msg.sender].push(70 + 140);
+        cliff[msg.sender].push(13150000);
+        vestingTime[msg.sender].push(31560000);
+        withdrawn[msg.sender] += _unlock;
+        IERC20(ERC20Address).transfer(msg.sender, _unlock);
     }
 
     function _withdrawableAmount(address _user) public view returns (uint256) {
@@ -201,14 +205,11 @@ contract Lock {
                 all += quantity[_user][i] - withdrawn[_user];
             } else if (_timestamp >= (timeStart[_user][i] + cliff[_user][i])) {
                 uint256 _timeTillNow = _timestamp - timeStart[_user][i];
-                uint256 timePassed = (_timeTillNow * 100) /
-                    vestingTime[_user][i];
-                all +=
-                    (quantity[_user][i] / 100) *
-                    timePassed -
-                    withdrawn[_user];
+                uint256 timePassed = (_timeTillNow * 100) / vestingTime[_user][i];
+                all += ((quantity[_user][i] * timePassed / 100) - withdrawn[_user]);
             }
-        }
+            
+        } 
         return (all);
     }
 
@@ -249,31 +250,4 @@ contract Lock {
         IERC20(ERC20Address).transfer(vestingInfo[_type].receiver, _amount);
     }
 
-    function Quantity(address _user, uint256 _room)
-        public
-        view
-        returns (uint256)
-    {
-        return quantity[_user][_room];
-    }
-
-    function TimeStart(address _user, uint256 _room)
-        public
-        view
-        returns (uint256)
-    {
-        return timeStart[_user][_room];
-    }
-
-    function Cliff(address _user, uint256 _room) public view returns (uint256) {
-        return cliff[_user][_room];
-    }
-
-    function VestingTime(address _user, uint256 _room)
-        public
-        view
-        returns (uint256)
-    {
-        return vestingTime[_user][_room];
-    }
 }

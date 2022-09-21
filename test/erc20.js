@@ -44,44 +44,26 @@ describe("Lock", () => {
     expect(tokens).to.equal(150000000);
   });
 
-  it("Correct public buy information", async () => {
+  it("Correct public buy TGE", async () => {
     await contract.publicBuy(100, {
       value: ethers.utils.parseEther("45"),
     });
-    const quantity = await contract.Quantity(deployer.address, 0);
-    const timeStart = await contract.TimeStart(deployer.address, 0);
-    const cliff = await contract.Cliff(deployer.address, 0);
-    const vesting = await contract.VestingTime(deployer.address, 0);
-    expect(quantity).to.equal(100);
-    expect(timeStart).to.greaterThan(0);
-    expect(cliff).to.equal(30);
-    expect(vesting).to.equal(30 + 60);
+    const quantity = await contract2.balanceOf(deployer.address);
+    expect(quantity).to.equal(25);
   });
-  it("Correct private buy information", async () => {
+  it("Correct private buy TGE", async () => {
     await contract.privateBuy(100, {
       value: ethers.utils.parseEther("20"),
     });
-    const quantity = await contract.Quantity(deployer.address, 0);
-    const timeStart = await contract.TimeStart(deployer.address, 0);
-    const cliff = await contract.Cliff(deployer.address, 0);
-    const vesting = await contract.VestingTime(deployer.address, 0);
-    expect(quantity).to.equal(100);
-    expect(timeStart).to.greaterThan(0);
-    expect(cliff).to.equal(50);
-    expect(vesting).to.equal(50 + 120);
+    const quantity = await contract2.balanceOf(deployer.address);
+    expect(quantity).to.equal(5);
   });
-  it("Correct seed buy information", async () => {
+  it("Correct seed buy TGE", async () => {
     await contract.seedBuy(100, {
       value: ethers.utils.parseEther("25"),
     });
-    const quantity = await contract.Quantity(deployer.address, 0);
-    const timeStart = await contract.TimeStart(deployer.address, 0);
-    const cliff = await contract.Cliff(deployer.address, 0);
-    const vesting = await contract.VestingTime(deployer.address, 0);
-    expect(quantity).to.equal(100);
-    expect(timeStart).to.greaterThan(0);
-    expect(cliff).to.equal(70);
-    expect(vesting).to.equal(70 + 140);
+    const quantity = await contract2.balanceOf(deployer.address);
+    expect(quantity).to.equal(5);
   });
   it("Should fail - not enough ether", async () => {
     await expect(
@@ -94,28 +76,30 @@ describe("Lock", () => {
     await contract.publicBuy(100, {
       value: ethers.utils.parseEther("45"),
     });
-    await network.provider.send("evm_increaseTime", [20]);
+    await network.provider.send("evm_increaseTime", [5000000]);
     await network.provider.send("evm_mine");
     const amount = await contract._withdrawableAmount(deployer.address);
     expect(amount).to.equal(0);
   });
-  it("Should unlock 33%", async () => {
+  it("Should unlock cliff", async () => {
     await contract.publicBuy(100, {
       value: ethers.utils.parseEther("45"),
     });
-    await network.provider.send("evm_increaseTime", [30]);
+    await network.provider.send("evm_increaseTime", [5590000]);
     await network.provider.send("evm_mine");
+    const quantity = await contract2.balanceOf(deployer.address);
     const amount = await contract._withdrawableAmount(deployer.address);
-    expect(amount).to.equal(33);
+    expect(quantity).to.equal(25);
+    expect(amount).to.equal(1);
   });
   it("Should unlock no more than limit", async () => {
     await contract.publicBuy(100, {
       value: ethers.utils.parseEther("45"),
     });
-    await network.provider.send("evm_increaseTime", [100]);
+    await network.provider.send("evm_increaseTime", [21040000]);
     await network.provider.send("evm_mine");
     const amount = await contract._withdrawableAmount(deployer.address);
-    expect(amount).to.equal(100);
+    expect(amount).to.equal(75);
   });
   it("Should double amount - 2nd purchase", async () => {
     await contract.publicBuy(100, {
@@ -124,28 +108,28 @@ describe("Lock", () => {
     await contract.publicBuy(100, {
       value: ethers.utils.parseEther("45"),
     });
-    await network.provider.send("evm_increaseTime", [30]);
+    await network.provider.send("evm_increaseTime", [21040000]);
     await network.provider.send("evm_mine");
     const amount = await contract._withdrawableAmount(deployer.address);
-    expect(amount).to.lessThan(110);
+    expect(amount).to.equal(100);
   });
   it("Should subtract withdrawal", async () => {
     await contract.publicBuy(100, {
       value: ethers.utils.parseEther("45"),
     });
-    await network.provider.send("evm_increaseTime", [100]);
+    await network.provider.send("evm_increaseTime", [21040000]);
     await network.provider.send("evm_mine");
-    await contract.withdraw(90);
+    await contract.withdraw(65);
     const amount = await contract._withdrawableAmount(deployer.address);
     expect(amount).to.equal(10);
   });
-  it("Shouldn't let withdraw without subtracting withdrawn", async () => {
+  it("Shouldn't let user withdraw without subtracting withdrawn", async () => {
     await contract.publicBuy(100, {
       value: ethers.utils.parseEther("45"),
     });
-    await network.provider.send("evm_increaseTime", [100]);
+    await network.provider.send("evm_increaseTime", [21040000]);
     await network.provider.send("evm_mine");
-    await contract.withdraw(90);
+    await contract.withdraw(65);
     await expect(contract.withdraw(20)).to.be.revertedWith(
       "Not enough balance"
     );
@@ -154,9 +138,9 @@ describe("Lock", () => {
     await contract.publicBuy(100, {
       value: ethers.utils.parseEther("45"),
     });
-    await network.provider.send("evm_increaseTime", [100]);
+    await network.provider.send("evm_increaseTime", [21040000]);
     await network.provider.send("evm_mine");
-    await contract.withdraw(90);
+    await contract.withdraw(65);
     const balance = await contract2.balanceOf(deployer.address);
     expect(balance).to.equal(90);
     const balance2 = await contract2.balanceOf(contract.address);
