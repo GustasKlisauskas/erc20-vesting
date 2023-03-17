@@ -76,7 +76,8 @@ contract Lock {
     mapping(address => uint256[]) cliff;
     mapping(address => uint256[]) vestingTime;
     mapping(address => uint256) public withdrawn;
-
+    
+    // @notice this is hardcoded information. Ideally you would want this information outside of contract. This is just to save time 
     constructor(
         address _businessA,
         address _softwareA,
